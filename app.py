@@ -81,7 +81,7 @@ def gallery():
             <div class="card">
                 <img src="{{ img.secure_url }}" loading="lazy">
                 <div class="status">
-                    <span></span> Signature Verified
+                    <span>🛡️</span> Signature Verified
                 </div>
                 <p class="timestamp">{{ img.created_at }}</p>
                 <a href="{{ img.secure_url }}" target="_blank">Full Size</a>
