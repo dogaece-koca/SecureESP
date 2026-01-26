@@ -20,11 +20,10 @@ cloudinary.config(
 
 @app.route('/')
 def gallery():
-    # Cloudinary'den son 10 resmi çek
     try:
         response = cloudinary.api.resources(
             type="upload",
-            prefix="secureesp/", # Sadece bu projenin klasörü
+            prefix="secureesp/",
             max_results=20,
             direction="desc"
         )
@@ -39,21 +38,53 @@ def gallery():
         <title>Secure Cloud</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-            body { font-family: sans-serif; background: #222; color: white; text-align: center; }
-            .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-            .card { background: #333; padding: 10px; border-radius: 8px; width: 300px; }
-            img { width: 100%; border-radius: 5px; }
-            a { color: #00d2ff; text-decoration: none; }
+            body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: #ddd; text-align: center; padding: 20px; }
+            h1 { color: #fff; margin-bottom: 30px; }
+            .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+            .card { 
+                background: #2a2a2a; 
+                padding: 15px; 
+                border-radius: 12px; 
+                width: 300px; 
+                box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+                transition: transform 0.2s;
+            }
+            .card:hover { transform: translateY(-5px); }
+            img { width: 100%; border-radius: 8px; margin-bottom: 10px; }
+            a { 
+                display: inline-block; 
+                margin-top: 10px; 
+                color: #00d2ff; 
+                text-decoration: none; 
+                border: 1px solid #00d2ff; 
+                padding: 5px 15px; 
+                border-radius: 20px; 
+            }
+            a:hover { background: #00d2ff; color: #1a1a1a; }
+            .status { 
+                color: #00ff88; 
+                font-weight: bold; 
+                font-size: 0.9em; 
+                margin: 10px 0; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                gap: 5px;
+            }
+            .timestamp { color: #888; font-size: 0.8em; }
         </style>
     </head>
     <body>
-        <h1>Bulut Galerisi</h1>
+        <h1>Cloud Gallery</h1>
         <div class="grid">
             {% for img in images %}
             <div class="card">
                 <img src="{{ img.secure_url }}" loading="lazy">
-                <p><small>{{ img.created_at }}</small></p>
-                <a href="{{ img.secure_url }}" target="_blank">Tam Boyut</a>
+                <div class="status">
+                    <span></span> Signature Verified
+                </div>
+                <p class="timestamp">{{ img.created_at }}</p>
+                <a href="{{ img.secure_url }}" target="_blank">Full Size</a>
             </div>
             {% endfor %}
         </div>
