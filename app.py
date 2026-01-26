@@ -24,7 +24,7 @@ def gallery():
     try:
         response = cloudinary.api.resources(
             type="upload",
-            prefix="lognomaly/", # Sadece bu projenin klasörü
+            prefix="secureesp/", # Sadece bu projenin klasörü
             max_results=20,
             direction="desc"
         )
@@ -47,7 +47,7 @@ def gallery():
         </style>
     </head>
     <body>
-        <h1>☁️ LogNomaly Bulut Galerisi</h1>
+        <h1>Bulut Galerisi</h1>
         <div class="grid">
             {% for img in images %}
             <div class="card">
@@ -78,7 +78,7 @@ def upload_file():
             # Cloudinary'ye Yükle
             upload_result = cloudinary.uploader.upload(
                 image_data,
-                folder = "lognomaly", # Cloudinary içinde klasör açar
+                folder = "secureesp", # Cloudinary içinde klasör açar
                 public_id = f"secure_img_{calculated_signature[:10]}"
             )
             return "SUCCESS: Uploaded to Cloud", 200
