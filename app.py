@@ -8,8 +8,6 @@ import cloudinary.api
 
 app = Flask(__name__)
 
-# --- AYARLAR (Render Environment Variables'dan çekecek) ---
-# Bunları kodun içine GÖMMÜYORUZ, Render panelinden gireceğiz (Güvenlik için)
 SECRET_KEY = os.environ.get("MY_SECRET_KEY", "Varsayilan_Guvenli_Olmayan_Key").encode()
 
 cloudinary.config(
@@ -102,14 +100,12 @@ def upload_file():
         if not image_data or not received_signature:
             return "Eksik Veri", 400
 
-        # HMAC Doğrulama
         calculated_signature = hmac.new(SECRET_KEY, image_data, hashlib.sha256).hexdigest()
 
         if hmac.compare_digest(calculated_signature, received_signature):
-            # Cloudinary'ye Yükle
             upload_result = cloudinary.uploader.upload(
                 image_data,
-                folder = "secureesp", # Cloudinary içinde klasör açar
+                folder = "secureesp",
                 public_id = f"secure_img_{calculated_signature[:10]}"
             )
             return "SUCCESS: Uploaded to Cloud", 200
