@@ -1,3 +1,8 @@
 flask
 gunicorn
 cloudinary
+numpy
+chromadb
+deepface
+tf-keras
+opencv-python-headless
