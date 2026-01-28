@@ -8,7 +8,7 @@ DB_PATH = "my_face_db"
 # Yapısı şöyle olmalı: dataset_cropped/doga, dataset_cropped/others
 DATASET_PATH = "dataset_cropped"
 
-MODEL_NAME = "Facenet512"
+MODEL_NAME = "SFace"
 
 def create_database():
 

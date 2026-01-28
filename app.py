@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 SECRET_KEY = os.environ.get("MY_SECRET_KEY", "Varsayilan_Guvenli_Olmayan_Key").encode()
 DB_PATH = "my_face_db"
-MODEL_NAME = "VGG-Face"
+MODEL_NAME = "SFace"
 
 cloudinary.config(
     cloud_name=os.environ.get("CLOUD_NAME"),
