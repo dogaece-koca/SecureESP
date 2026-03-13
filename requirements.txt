@@ -6,3 +6,4 @@ chromadb
 deepface
 tf-keras
 opencv-python-headless
+retinaface
