@@ -4,57 +4,74 @@ import numpy as np
 import chromadb
 from deepface import DeepFace
 
-MODEL_NAME = "SFace"
-DETECTOR = "retinaface"
-DATASET_ROOT = r"C:\Users\doaec\PycharmProjects\ESPSecure\dataset_cropped"
+ENROLL_DIR = r"C:\Users\doaec\PycharmProjects\ESPSecure\dataset_cropped\doga"
+
 DB_PATH = "my_face_db"
+MODEL_NAME = "ArcFace"
+DETECTOR = "retinaface"
+
+def get_embedding(path):
+    try:
+        objs = DeepFace.represent(
+            img_path=path,
+            model_name=MODEL_NAME,
+            detector_backend=DETECTOR,
+            enforce_detection=True,
+            align=True,
+        )
+    except ValueError:
+        return None
+    if not objs:
+        return None
+    v = np.array(objs[0]["embedding"], dtype=np.float32)
+    n = np.linalg.norm(v)
+    if n < 1e-8:
+        return None
+    return (v / n).tolist()
 
 
-def start_enrollment():
-    print(f" Dataset İşleniyor: {DATASET_ROOT}")
+def main():
+    if not os.path.isdir(ENROLL_DIR):
+        raise SystemExit(f"Klasör yok: {ENROLL_DIR}")
 
     if os.path.exists(DB_PATH):
         shutil.rmtree(DB_PATH)
-        print(" Eski veritabanı silindi.")
+        print("Eski DB silindi.")
 
     client = chromadb.PersistentClient(path=DB_PATH)
-    collection = client.create_collection(name="faces", metadata={"hnsw:space": "cosine"})
+    col = client.create_collection(name="faces",
+                                   metadata={"hnsw:space": "cosine"})
 
-    klasorler = {"doga": "Doga", "others": "others"}
-    toplam_basarili = 0
+    files = sorted(f for f in os.listdir(ENROLL_DIR)
+                   if f.lower().endswith((".png", ".jpg", ".jpeg")))
+    print(f"{len(files)} fotoğraf bulundu, işleniyor...")
 
-    for klasor_adi, etiket in klasorler.items():
-        hedef_yol = os.path.join(DATASET_ROOT, klasor_adi)
-        if not os.path.exists(hedef_yol): continue
+    embs, ids, skipped = [], [], []
+    for i, f in enumerate(files, 1):
+        v = get_embedding(os.path.join(ENROLL_DIR, f))
+        if v is None:
+            skipped.append(f)
+            print(f"  [{i}/{len(files)}] {f}  -> SKIP (yüz bulunamadı)")
+            continue
+        embs.append(v)
+        ids.append(f"Doga_{f}")
+        print(f"  [{i}/{len(files)}] {f}  -> OK")
 
-        print(f"{klasor_adi} klasörü işleniyor...")
-        dosyalar = [f for f in os.listdir(hedef_yol) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    if not embs:
+        print("HATA: Hiç embedding üretilemedi.")
+        return
 
-        for dosya in dosyalar:
-            tam_yol = os.path.join(hedef_yol, dosya)
-            try:
-                embedding_objs = DeepFace.represent(
-                    img_path=tam_yol,
-                    model_name=MODEL_NAME,
-                    detector_backend=DETECTOR,
-                    enforce_detection=True
-                )
-                embedding = np.array(embedding_objs[0]["embedding"])
-
-                norm_embedding = embedding / np.linalg.norm(embedding)
-
-                collection.add(
-                    documents=[etiket],
-                    embeddings=[norm_embedding.tolist()],
-                    ids=[f"{etiket}_{dosya}"]
-                )
-                print(f"  Eklendi: {dosya}")
-                toplam_basarili += 1
-            except:
-                print(f"  Atlandı: {dosya} (Yüz saptanamadı)")
-
-    print(f"\nİŞLEM TAMAMLANDI! Toplam {toplam_basarili} yüz kaydedildi.")
+    col.add(documents=["Doga"] * len(embs), embeddings=embs, ids=ids)
+    print(f"\n=== TAMAMLANDI ===")
+    print(f"Enroll edilen: {len(embs)} / {len(files)}")
+    print(f"Atlanan:       {len(skipped)}")
+    if skipped:
+        print(f"\nAtlanan fotoğraflar (yüz tespiti başarısız):")
+        for f in skipped:
+            print(f"  - {f}")
+        print("\nBu fotoğraflar büyük ihtimalle ya çok bulanık ya da yüz çok küçük.")
+        print("Test setinden çıkarman önerilir; aksi halde haksız yere FRR'yi şişirirler.")
 
 
 if __name__ == "__main__":
-    start_enrollment()
+    main()
