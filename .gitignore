@@ -1,0 +1,9 @@
+.env
+.idea/
+*.pdf
+*.png
+my_face_db/
+dataset_cropped/
+EEG/data/
+test/test_doga
+test/test_yabanci

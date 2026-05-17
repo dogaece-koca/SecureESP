@@ -25,7 +25,7 @@ SECRET_KEY = os.environ.get("ESP_SECRET_KEY", "Doga_Project_Secret_Key_2026").en
 THRESHOLD = float(os.environ.get("ESP_THRESHOLD", "0.55"))
 DETECTOR = os.environ.get("ESP_DETECTOR", "retinaface")
 DB_PATH = "my_face_db"
-MODEL_NAME = "ArcFace"
+MODEL_NAME = "Facenet512"
 TOP_K = 5
 GALLERY_LIMIT = 50
 
@@ -37,12 +37,31 @@ cloudinary.config(
 
 app = Flask(__name__)
 
+# Bellek-içi galeri: (id, jpg_bytes, status, person, score, time_str) — en yeni başta
 GALLERY = deque(maxlen=GALLERY_LIMIT)
 GALLERY_LOCK = threading.Lock()
 
 chroma_client = chromadb.PersistentClient(path=DB_PATH)
 collection = chroma_client.get_collection(name="faces")
 print(f"DB hazır: {collection.count()} kayıt | Threshold: {THRESHOLD} | Detector: {DETECTOR}")
+
+# Modelleri başlangıçta yükle (her çağrıda yeniden yüklemeyi engeller)
+print(f"Modeller önyüklenecek: {MODEL_NAME} + {DETECTOR} (ilk seferde 10-30 sn)")
+try:
+    DeepFace.build_model(MODEL_NAME)
+    print(f"  {MODEL_NAME} yüklendi.")
+except Exception as e:
+    print(f"  {MODEL_NAME} preload hatası: {e}")
+# RetinaFace'i de bir kez çağırarak ön-belleğe al
+import numpy as _np
+_dummy = _np.zeros((224, 224, 3), dtype=_np.uint8)
+try:
+    DeepFace.represent(img_path=_dummy, model_name=MODEL_NAME,
+                       detector_backend=DETECTOR, enforce_detection=False, align=True)
+    print(f"  {DETECTOR} ısındı.")
+except Exception:
+    pass
+print("Sunucu hazır.")
 
 
 def predict(img_bgr):
@@ -97,11 +116,16 @@ def upload_file():
     if img is None:
         return "Geçersiz Görüntü", 400
 
+    import time as _t
+    _srv_t0 = _t.perf_counter()
     status, person, score, dists = predict(img)
-    filename = request.headers.get("X-Filename", "")
-    print(f"[{status}] {person} | score={score} | {filename}")
+    server_ms = int((_t.perf_counter() - _srv_t0) * 1000)
 
+    from urllib.parse import unquote
+    filename = unquote(request.headers.get("X-Filename", ""))
+    print(f"[{status}] {person} | score={score} | server_ms={server_ms} | {filename}")
 
+    # Bellek-içi galeriye ekle (en yeni başta)
     photo_id = uuid.uuid4().hex[:8]
     entry = {
         "id": photo_id,
@@ -111,11 +135,13 @@ def upload_file():
         "person": person,
         "score": score,
         "k_distances": dists,
+        "server_ms": server_ms,
         "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     with GALLERY_LOCK:
         GALLERY.appendleft(entry)
 
+    # Cloudinary'e arka planda arşivle (galerinin çalışması buna bağlı değil)
     pid = f"{status}_{person}_{calc[:6]}"
     threading.Thread(target=upload_bg,
                      args=(image_data, pid, status, score),
@@ -126,6 +152,7 @@ def upload_file():
 
 @app.route("/photo/<pid>")
 def serve_photo(pid):
+    """Bellek-içi galeriden tek bir fotoğrafı sunar (tarayıcıda cache'lenir)."""
     with GALLERY_LOCK:
         for e in GALLERY:
             if e["id"] == pid:
@@ -137,6 +164,7 @@ def serve_photo(pid):
 
 @app.route("/api/count")
 def api_count():
+    """Galeri durumu — sayfa bunu poll edip değişiklik olduğunda yenileniyor."""
     with GALLERY_LOCK:
         latest_id = GALLERY[0]["id"] if GALLERY else ""
         return {"count": len(GALLERY), "latest": latest_id}
@@ -151,6 +179,7 @@ def _csv_safe(v):
 
 @app.route("/export.csv")
 def export_csv():
+    """Bu oturumun tüm kararlarını CSV olarak indir."""
     with GALLERY_LOCK:
         items = list(GALLERY)
     items.reverse()  # eskiden yeniye
@@ -244,7 +273,6 @@ def gallery():
     </body></html>
     """
     return render_template_string(html, items=items, thr=THRESHOLD)
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=False)

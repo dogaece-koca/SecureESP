@@ -5,9 +5,8 @@ import chromadb
 from deepface import DeepFace
 
 ENROLL_DIR = r"C:\Users\doaec\PycharmProjects\ESPSecure\dataset_cropped\doga"
-
 DB_PATH = "my_face_db"
-MODEL_NAME = "ArcFace"
+MODEL_NAME = "Facenet512"
 DETECTOR = "retinaface"
 
 def get_embedding(path):
@@ -19,7 +18,8 @@ def get_embedding(path):
             enforce_detection=True,
             align=True,
         )
-    except ValueError:
+    except Exception as e:
+        print(f"  -> ÇÖKME NEDENİ: {e}")
         return None
     if not objs:
         return None
