@@ -211,7 +211,7 @@ Access `http://YOUR_SERVER_IP:8080` in a browser:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ESP_SECRET_KEY` | — | Shared HMAC secret (required) |
-| `ESP_THRESHOLD` | `0.55` | Cosine distance cutoff for GRANTED |
+| `ESP_THRESHOLD` | `0.35` | Cosine distance cutoff for GRANTED |
 | `ESP_DETECTOR` | `retinaface` | DeepFace detector backend |
 | `MIN_DISTANCE` | `30` cm | Minimum valid user distance |
 | `MAX_DISTANCE` | `80` cm | Maximum valid user distance |
